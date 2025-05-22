@@ -1,0 +1,16 @@
+
+front_end/node_modules/ 
+front_end/dist/ 
+front_end/.env 
+
+# Ignore for backend (Java/Spring)
+backend_graduationpj/target/
+backend_graduationpj/.idea/
+backend_graduationpj/.env
+*.iml
+
+.env
+
+backend_graduationpj/src/main/resources/application.yml
+
+.DS_Store

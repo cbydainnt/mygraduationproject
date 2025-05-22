@@ -1,0 +1,340 @@
+// // src/pages/admin/AdminProductFormPage.jsx
+// import React, { useState, useEffect, useCallback } from 'react';
+// import { useParams, useNavigate, Link } from 'react-router-dom';
+// import { useForm } from 'react-hook-form';
+// import { getProductById, createProduct, updateProduct, uploadImage } from '../../services/productService';
+// import { getAllCategories } from '../../services/categoryService';
+// import { Container, Card, Form, Button, Spinner, Alert, Row, Col, Image } from 'react-bootstrap';
+// import { ArrowLeft, StarFill, Trash } from 'react-bootstrap-icons';
+// import { toast } from 'react-toastify';
+// import { motion } from 'framer-motion';
+
+// // Animation variants
+// const pageVariants = { initial: { opacity: 0, y: 20 }, in: { opacity: 1, y: 0 }, out: { opacity: 0, y: -20 } };
+// const pageTransition = { duration: 0.3 };
+
+// function AdminProductFormPage() {
+//   const { productId } = useParams();
+//   const navigate = useNavigate();
+//   const isEditMode = Boolean(productId);
+
+//   const [loading, setLoading] = useState(false);
+//   const [loadingData, setLoadingData] = useState(isEditMode);
+//   const [error, setError] = useState('');
+//   const [categories, setCategories] = useState([]);
+
+//   // Quản lý ảnh preview và file mới upload
+//   const [imagePreviews, setImagePreviews] = useState([]); // { url, isNew, file }
+//   const [selectedPrimaryImage, setSelectedPrimaryImage] = useState(null);
+
+//   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
+//     defaultValues: {
+//       name: '', description: '', price: '', stock: '', barcode: '', brand: '', model: '',
+//       movement: '', caseMaterial: '', strapMaterial: '', dialColor: '', waterResistance: '',
+//       categoryId: ''
+//     }
+//   });
+
+//   useEffect(() => {
+//     getAllCategories()
+//       .then(res => setCategories(res.data || []))
+//       .catch(err => console.error("Failed to load categories:", err));
+//   }, []);
+
+//   const fetchProductData = useCallback(async () => {
+//     if (!isEditMode) return;
+//     setLoadingData(true);
+//     setError('');
+//     try {
+//       const response = await getProductById(productId);
+//       const productData = response.data;
+//       reset({
+//         name: productData.name || '',
+//         description: productData.description || '',
+//         price: productData.price || '',
+//         stock: productData.stock || '',
+//         barcode: productData.barcode || '',
+//         brand: productData.brand || '',
+//         model: productData.model || '',
+//         movement: productData.movement || '',
+//         caseMaterial: productData.caseMaterial || '',
+//         strapMaterial: productData.strapMaterial || '',
+//         dialColor: productData.dialColor || '',
+//         waterResistance: productData.waterResistance || '',
+//         categoryId: productData.categoryId || ''
+//       });
+
+//       // Set ảnh preview cũ từ URL
+//       const previews = (productData.imageUrls || []).map(url => ({ url, isNew: false }));
+//       setImagePreviews(previews);
+//       setSelectedPrimaryImage(productData.primaryImageUrl || previews[0]?.url || null);
+
+//     } catch (err) {
+//       console.error("Error fetching product:", err);
+//       setError('Failed to load product data.');
+//       toast.error('Failed to load product data.');
+//     } finally {
+//       setLoadingData(false);
+//     }
+//   }, [productId, isEditMode, reset]);
+
+//   useEffect(() => { fetchProductData(); }, [fetchProductData]);
+
+//   // Upload ảnh mới và tạo preview
+//   const handleImageChange = async (event) => {
+//     const files = Array.from(event.target.files);
+//     if (files.length === 0) return;
+
+//     // Tạo preview cho ảnh mới
+//     const newPreviews = files.map(file => ({
+//       url: URL.createObjectURL(file),
+//       isNew: true,
+//       file
+//     }));
+
+//     setImagePreviews(prev => [...prev, ...newPreviews]);
+//   };
+
+//   // Xóa ảnh (mới hoặc cũ)
+//   const handleRemoveImage = (urlToRemove, isNew) => {
+//     if (isNew) {
+//       setImagePreviews(prev => {
+//         // Hủy URL object để tránh leak bộ nhớ
+//         prev.forEach(p => {
+//           if (p.url === urlToRemove && p.isNew) URL.revokeObjectURL(p.url);
+//         });
+//         return prev.filter(img => img.url !== urlToRemove);
+//       });
+//     } else {
+//       // Xóa ảnh cũ khỏi preview, backend phải xử lý xóa thật sự nếu muốn
+//       setImagePreviews(prev => prev.filter(img => img.url !== urlToRemove));
+//       toast.info("Ảnh cũ chỉ bị bỏ khỏi giao diện, bạn cần API xóa riêng nếu muốn xóa vĩnh viễn.");
+//     }
+//     if (selectedPrimaryImage === urlToRemove) {
+//       const remainings = imagePreviews.filter(img => img.url !== urlToRemove);
+//       setSelectedPrimaryImage(remainings.length > 0 ? remainings[0].url : null);
+//     }
+//   };
+
+//   // Đặt ảnh chính
+//   const handleSetPrimary = (url) => {
+//     setSelectedPrimaryImage(url);
+//   };
+
+//   // Upload file ảnh mới lên server trả về URL
+//   const uploadNewImages = async () => {
+//     const uploadedUrls = [];
+//     for (const img of imagePreviews) {
+//       if (img.isNew && img.file) {
+//         try {
+//           const url = await uploadImage(img.file);
+//           uploadedUrls.push(url);
+//         } catch (e) {
+//           toast.error(`Upload ảnh ${img.file.name} thất bại`);
+//           throw e;
+//         }
+//       } else if (!img.isNew) {
+//         uploadedUrls.push(img.url);
+//       }
+//     }
+//     return uploadedUrls;
+//   };
+
+//   // Xử lý submit form
+//   const onSubmit = async (data) => {
+//     setLoading(true);
+//     setError('');
+
+//     try {
+//       // 1. Upload ảnh mới, nhận URL
+//       const finalImageUrls = await uploadNewImages();
+
+//       // 2. Xác định ảnh chính (nếu ảnh chính không còn trong list ảnh thì lấy ảnh đầu tiên)
+//       let finalPrimaryUrl = selectedPrimaryImage;
+//       if (!finalPrimaryUrl || !finalImageUrls.includes(finalPrimaryUrl)) {
+//         finalPrimaryUrl = finalImageUrls.length > 0 ? finalImageUrls[0] : null;
+//       }
+
+//       // 3. Tạo payload gửi backend
+//       const productPayload = {
+//         name: data.name,
+//         description: data.description,
+//         price: data.price ? parseFloat(data.price) : null,
+//         stock: data.stock ? parseInt(data.stock) : 0,
+//         barcode: data.barcode,
+//         brand: data.brand,
+//         model: data.model,
+//         movement: data.movement,
+//         caseMaterial: data.caseMaterial,
+//         strapMaterial: data.strapMaterial,
+//         dialColor: data.dialColor,
+//         waterResistance: data.waterResistance,
+//         category: { categoryId: parseInt(data.categoryId) },
+//         imageUrls: finalImageUrls,
+//         primaryImageUrl: finalPrimaryUrl
+//       };
+
+//       // 4. Gọi API tạo hoặc cập nhật
+//       if (isEditMode) {
+//         await updateProduct(productId, productPayload);
+//         toast.success("Cập nhật sản phẩm thành công!");
+//       } else {
+//         await createProduct(productPayload);
+//         toast.success("Thêm sản phẩm mới thành công!");
+//       }
+//       navigate('/admin/products');
+
+//     } catch (err) {
+//       console.error("Error saving product:", err);
+//       setError(err.response?.data?.message || 'Lỗi khi lưu sản phẩm.');
+//       toast.error(err.response?.data?.message || 'Lỗi khi lưu sản phẩm.');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   if (loadingData && isEditMode) {
+//     return (
+//       <Container className="text-center py-5">
+//         <Spinner animation="border" />
+//       </Container>
+//     );
+//   }
+
+//   return (
+//     <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
+//       <Container fluid>
+//         <Row className="justify-content-center">
+//           <Col lg={10} xl={8}>
+//             <Link to="/admin/products" className="btn btn-outline-secondary btn-sm mb-3">
+//               <ArrowLeft className="me-1" /> Quay lại
+//             </Link>
+//             <Card className="shadow-sm">
+//               <Card.Header>
+//                 <Card.Title as="h5">{isEditMode ? 'Cập nhật Sản phẩm' : 'Thêm sản phẩm mới'}</Card.Title>
+//               </Card.Header>
+//               <Card.Body>
+//                 {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+
+//                 <Form onSubmit={handleSubmit(onSubmit)}>
+//                   <Row>
+//                     <Form.Group as={Col} md={8} className="mb-3" controlId="productName">
+//                       <Form.Label>Tên sản phẩm <span className="text-danger">*</span></Form.Label>
+//                       <Form.Control
+//                         type="text"
+//                         isInvalid={!!errors.name}
+//                         {...register("name", { required: "Tên sản phẩm không được để trống" })}
+//                       />
+//                       <Form.Control.Feedback type="invalid">{errors.name?.message}</Form.Control.Feedback>
+//                     </Form.Group>
+//                     <Form.Group as={Col} md={4} className="mb-3" controlId="productCategory">
+//                       <Form.Label>Danh mục <span className="text-danger">*</span></Form.Label>
+//                       <Form.Select
+//                         isInvalid={!!errors.categoryId}
+//                         {...register("categoryId", { required: "Danh mục không được để trống" })}
+//                       >
+//                         <option value="">Chọn danh mục...</option>
+//                         {categories.map(cat => (
+//                           <option key={cat.categoryId} value={cat.categoryId}>{cat.name}</option>
+//                         ))}
+//                       </Form.Select>
+//                       <Form.Control.Feedback type="invalid">{errors.categoryId?.message}</Form.Control.Feedback>
+//                     </Form.Group>
+//                   </Row>
+
+//                   <Form.Group className="mb-3" controlId="productDescription">
+//                     <Form.Label>Mô tả</Form.Label>
+//                     <Form.Control as="textarea" rows={4} {...register("description")} />
+//                   </Form.Group>
+
+//                   <Row>
+//                     <Form.Group as={Col} md={6} className="mb-3" controlId="productPrice">
+//                       <Form.Label>Giá (VND) <span className="text-danger">*</span></Form.Label>
+//                       <Form.Control
+//                         type="number"
+//                         step="1000"
+//                         min="0"
+//                         isInvalid={!!errors.price}
+//                         {...register("price", { required: "Giá sản phẩm không được để trống", valueAsNumber: true })}
+//                       />
+//                       <Form.Control.Feedback type="invalid">{errors.price?.message}</Form.Control.Feedback>
+//                     </Form.Group>
+//                     <Form.Group as={Col} md={6} className="mb-3" controlId="productStock">
+//                       <Form.Label>Số lượng <span className="text-danger">*</span></Form.Label>
+//                       <Form.Control
+//                         type="number"
+//                         min="0"
+//                         isInvalid={!!errors.stock}
+//                         {...register("stock", { required: "Số lượng không được để trống", valueAsNumber: true, min: { value: 0, message: "Số lượng không được âm" } })}
+//                       />
+//                       <Form.Control.Feedback type="invalid">{errors.stock?.message}</Form.Control.Feedback>
+//                     </Form.Group>
+//                   </Row>
+
+//                   {/* Ảnh */}
+//                   <Form.Group className="mb-3" controlId="productImages">
+//                     <Form.Label>Hình ảnh</Form.Label>
+//                     <Form.Control
+//                       type="file"
+//                       multiple
+//                       onChange={handleImageChange}
+//                       accept="image/*"
+//                     />
+//                     <Form.Text className="text-muted">
+//                       Thêm ảnh mới. Click ngôi sao trên ảnh để chọn ảnh chính.
+//                     </Form.Text>
+//                     <div className="mt-3 d-flex flex-wrap gap-2">
+//                       {imagePreviews.map((img, idx) => (
+//                         <div
+//                           key={img.url || idx}
+//                           className="position-relative border rounded p-1 text-center"
+//                           style={{ width: '100px' }}
+//                         >
+//                           <Image
+//                             src={img.url}
+//                             thumbnail
+//                             style={{ height: '80px', width: 'auto', objectFit: 'contain' }}
+//                           />
+//                           <Button
+//                             variant="light"
+//                             size="sm"
+//                             className="position-absolute top-0 end-0 p-0 px-1"
+//                             onClick={() => handleRemoveImage(img.url, img.isNew)}
+//                             title="Xóa ảnh"
+//                           >
+//                             <Trash size={14} color="red" />
+//                           </Button>
+//                           <Button
+//                             variant={selectedPrimaryImage === img.url ? "warning" : "outline-secondary"}
+//                             size="sm"
+//                             className="position-absolute top-0 start-0 p-0 px-1"
+//                             onClick={() => handleSetPrimary(img.url)}
+//                             title="Chọn ảnh chính"
+//                           >
+//                             <StarFill size={12} />
+//                           </Button>
+//                         </div>
+//                       ))}
+//                     </div>
+//                   </Form.Group>
+
+//                   {/* Các trường thông số kỹ thuật khác */}
+//                   {/* ... giống code bạn đã có ... */}
+
+//                   <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+//                     <Button variant="secondary" type="button" onClick={() => navigate('/admin/products')} disabled={loading}>Hủy</Button>
+//                     <Button variant="primary" type="submit" disabled={loading}>
+//                       {loading ? <Spinner size="sm" /> : (isEditMode ? 'Cập nhật' : 'Thêm')}
+//                     </Button>
+//                   </div>
+//                 </Form>
+//               </Card.Body>
+//             </Card>
+//           </Col>
+//         </Row>
+//       </Container>
+//     </motion.div>
+//   );
+// }
+
+// export default AdminProductFormPage;
