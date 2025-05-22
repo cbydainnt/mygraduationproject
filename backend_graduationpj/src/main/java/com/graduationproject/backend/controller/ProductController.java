@@ -3,10 +3,9 @@ package com.graduationproject.backend.controller;
 import com.graduationproject.backend.dto.ProductDTO; // Import DTO
 import com.graduationproject.backend.dto.ProductPageDTO;
 import com.graduationproject.backend.dto.ProductRequestDTO;
-import com.graduationproject.backend.entity.Product; // Vẫn cần entity để nhận request body nếu dùng entity trực tiếp
 import com.graduationproject.backend.service.FileStorageService;
 import com.graduationproject.backend.service.ProductService;
-import jakarta.validation.Valid; // Import Valid
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
@@ -17,11 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

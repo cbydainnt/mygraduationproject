@@ -23,8 +23,6 @@ public class StatisticController {
         this.statisticService = statisticService;
     }
 
-    // Các endpoint thống kê ở đây sẽ tự động yêu cầu role ADMIN
-
 
     @GetMapping("/summary")
     public ResponseEntity<DashboardSummaryDTO> getDashboardSummary() {

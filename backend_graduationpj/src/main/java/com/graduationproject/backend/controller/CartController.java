@@ -1,4 +1,3 @@
-// src/main/java/com/graduationproject/backend/controller/CartController.java
 package com.graduationproject.backend.controller;
 
 import com.graduationproject.backend.dto.CartDTO;

@@ -1,7 +1,6 @@
 package com.graduationproject.backend.controller;
 
 import com.graduationproject.backend.dto.InvoiceDetailDTO;
-import com.graduationproject.backend.entity.Invoice;
 import com.graduationproject.backend.entity.Order;
 import com.graduationproject.backend.entity.User;
 import com.graduationproject.backend.exception.ResourceNotFoundException;
@@ -42,33 +41,6 @@ public class InvoiceController {
     }
     // --- End Helper ---
 
-    /**
-     * Lấy hoặc tạo hóa đơn cho một đơn hàng cụ thể.
-     * Chỉ chủ đơn hàng hoặc Admin mới có quyền truy cập.
-     */
-//    @GetMapping("/order/{orderId}") // Dùng path này để lấy/tạo hóa đơn theo orderId
-//    public ResponseEntity<Invoice> getOrCreateInvoiceForOrder(@PathVariable int orderId) {
-//        User currentUser = getCurrentAuthenticatedUser();
-//        // Gọi service để lấy hoặc tạo hóa đơn
-//        Invoice invoice = invoiceService.generateOrGetInvoiceForOrder(orderId); // Gọi phương thức mới
-//
-//        // Kiểm tra quyền truy cập (sau khi đã có invoice và thông tin order)
-//        if (invoice.getOrder() == null) {
-//            // Trường hợp hiếm gặp: Service trả về invoice mà không có order?
-//            throw new ResourceNotFoundException("Order information missing in the invoice.");
-//        }
-//
-//        boolean isAdmin = currentUser.getRole().name().equals("ADMIN");
-//        boolean isOwner = invoice.getOrder().getUserId() == currentUser.getUserId();
-//
-//        if (!isOwner && !isAdmin) {
-//            // Ném lỗi rõ ràng hơn thay vì SecurityException chung chung
-//            throw new AccessDeniedException("You do not have permission to access the invoice for order " + orderId);
-//            // Hoặc return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-//        }
-//
-//        return ResponseEntity.ok(invoice);
-//    }
     @GetMapping("/order/{orderId}")
     // 1. Thay đổi kiểu trả về thành ResponseEntity<InvoiceDetailDTO>
     public ResponseEntity<InvoiceDetailDTO> getOrCreateInvoiceForOrder(@PathVariable int orderId) {
